@@ -19,9 +19,15 @@ export function NewsletterForm() {
         body: JSON.stringify({ email }),
       });
 
+      const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
         throw new Error(payload?.error || res.statusText || "Request failed");
+      }
+
+      if (payload?.warning) {
+        setError(payload.warning);
+      } else {
+        setError(null);
       }
 
       setStatus("success");

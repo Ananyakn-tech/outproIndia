@@ -14,7 +14,13 @@ export async function POST(req: Request) {
     const listId = process.env.MAILCHIMP_LIST_ID;
 
     if (!apiKey || !listId) {
-      return NextResponse.json({ error: "Mailchimp not configured" }, { status: 501 });
+      return NextResponse.json(
+        {
+          ok: true,
+          warning: "Mailchimp is not configured for this deployment. Newsletter signup is currently disabled.",
+        },
+        { status: 200 }
+      );
     }
 
     // Mailchimp API requires datacenter from API key suffix

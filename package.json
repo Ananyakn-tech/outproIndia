@@ -10,7 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "generate:pdfs": "mkdir -p docs/pdfs && npx markdown-pdf docs/*.md -o docs/pdfs || true"
+    "generate:pdfs": "mkdir -p docs/pdfs && for f in docs/*.md; do npx markdown-pdf \"$f\" -o \"docs/pdfs/$(basename \"$f\" .md).pdf\"; done"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

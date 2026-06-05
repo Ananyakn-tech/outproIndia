@@ -75,6 +75,75 @@ async function sendViaFormspree(payload: ContactPayload) {
   return true;
 }
 
+async function forwardToHubSpot(payload: ContactPayload) {
+  const apiKey = process.env.HUBSPOT_API_KEY;
+  if (!apiKey) {
+    throw new Error("HubSpot not configured: set HUBSPOT_API_KEY");
+  }
+
+  const body = {
+    properties: {
+      email: payload.email,
+      firstname: payload.name,
+      company: payload.company || "",
+      description: payload.message || "",
+    },
+  };
+
+  const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    throw new Error(`HubSpot error: ${res.status} ${bodyText}`);
+  }
+
+  return true;
+}
+
+async function forwardToZoho(payload: ContactPayload) {
+  const token = process.env.ZOHO_ACCESS_TOKEN;
+  if (!token) {
+    throw new Error("Zoho not configured: set ZOHO_ACCESS_TOKEN");
+  }
+
+  const nameParts = payload.name?.trim().split(" ") || [];
+  const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : payload.name || "";
+  const lastName = nameParts.length > 0 ? nameParts.slice(-1).join(" ") : "Contact";
+
+  const res = await fetch("https://www.zohoapis.com/crm/v2/Contacts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Zoho-oauthtoken ${token}`,
+    },
+    body: JSON.stringify({
+      data: [
+        {
+          Last_Name: lastName || "Contact",
+          First_Name: firstName,
+          Email: payload.email,
+          Company: payload.company || "Self-Employed",
+          Description: payload.message || "",
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    throw new Error(`Zoho error: ${res.status} ${bodyText}`);
+  }
+
+  return true;
+}
+
 export async function POST(req: Request) {
   try {
     const data: ContactPayload = await req.json();
@@ -83,26 +152,46 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Attempt to send via Resend if configured
+    let sent = false;
     if (process.env.RESEND_API_KEY) {
       await sendViaResend(data);
-      return NextResponse.json({ ok: true });
-    }
-
-    // Fallback to Formspree if configured
-    if (process.env.FORMSPREE_FORM_ID) {
+      sent = true;
+    } else if (process.env.FORMSPREE_FORM_ID) {
       await sendViaFormspree(data);
-      return NextResponse.json({ ok: true });
+      sent = true;
     }
 
-    // If no provider configured, return 501 with instructions
-    return NextResponse.json(
-      {
-        error:
-          "No email provider configured. Set RESEND_API_KEY and CONTACT_FROM_EMAIL/CONTACT_TO_EMAIL, or set FORMSPREE_FORM_ID for a Formspree fallback.",
-      },
-      { status: 501 }
-    );
+    if (!sent) {
+      return NextResponse.json(
+        {
+          error:
+            "No email provider configured. Set RESEND_API_KEY and CONTACT_FROM_EMAIL/CONTACT_TO_EMAIL, or set FORMSPREE_FORM_ID for a Formspree fallback.",
+        },
+        { status: 501 }
+      );
+    }
+
+    const crmResults: Array<{ provider: string; status: string; error?: string }> = [];
+
+    if (process.env.HUBSPOT_API_KEY) {
+      try {
+        await forwardToHubSpot(data);
+        crmResults.push({ provider: "HubSpot", status: "forwarded" });
+      } catch (err: any) {
+        crmResults.push({ provider: "HubSpot", status: "failed", error: err?.message || String(err) });
+      }
+    }
+
+    if (process.env.ZOHO_ACCESS_TOKEN) {
+      try {
+        await forwardToZoho(data);
+        crmResults.push({ provider: "Zoho", status: "forwarded" });
+      } catch (err: any) {
+        crmResults.push({ provider: "Zoho", status: "failed", error: err?.message || String(err) });
+      }
+    }
+
+    return NextResponse.json({ ok: true, crm: crmResults });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
   }

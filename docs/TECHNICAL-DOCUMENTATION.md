@@ -8,7 +8,10 @@ This repository contains a Next.js 13 (App Router) site. Key points:
   - `POST /api/newsletter` — accepts { email } and subscribes to Mailchimp when configured.
 - Environment variables required for full functionality:
   - `RESEND_API_KEY`, `CONTACT_FROM_EMAIL`, `CONTACT_TO_EMAIL` — for contact emails via Resend
+  - `FORMSPREE_FORM_ID` — for a Formspree fallback if Resend is not configured
   - `MAILCHIMP_API_KEY`, `MAILCHIMP_LIST_ID` — for newsletter signup
+  - `HUBSPOT_API_KEY` — optional HubSpot CRM forwarding for new contacts
+  - `ZOHO_ACCESS_TOKEN` — optional Zoho CRM forwarding for new contacts
 
 Files added by handover scripts:
 - `src/app/services/[slug]/page.tsx` — dynamic service pages

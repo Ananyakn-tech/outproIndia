@@ -47,6 +47,34 @@ async function sendViaResend(payload: ContactPayload) {
   return true;
 }
 
+async function sendViaFormspree(payload: ContactPayload) {
+  const formId = process.env.FORMSPREE_FORM_ID;
+  if (!formId) {
+    throw new Error("Formspree not configured: set FORMSPREE_FORM_ID");
+  }
+
+  const res = await fetch(`https://formspree.io/f/${formId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      name: payload.name,
+      email: payload.email,
+      company: payload.company,
+      message: payload.message,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Formspree error: ${res.status} ${body}`);
+  }
+
+  return true;
+}
+
 export async function POST(req: Request) {
   try {
     const data: ContactPayload = await req.json();
@@ -61,11 +89,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Fallback to Formspree if configured
+    if (process.env.FORMSPREE_FORM_ID) {
+      await sendViaFormspree(data);
+      return NextResponse.json({ ok: true });
+    }
+
     // If no provider configured, return 501 with instructions
     return NextResponse.json(
       {
         error:
-          "No email provider configured. Set RESEND_API_KEY and CONTACT_FROM_EMAIL/CONTACT_TO_EMAIL, or wire a provider.",
+          "No email provider configured. Set RESEND_API_KEY and CONTACT_FROM_EMAIL/CONTACT_TO_EMAIL, or set FORMSPREE_FORM_ID for a Formspree fallback.",
       },
       { status: 501 }
     );

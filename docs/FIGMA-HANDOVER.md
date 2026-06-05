@@ -8,4 +8,4 @@ This document lists the artboards and assets to include when delivering Figma fi
 - Include a pages index with notes explaining layout constraints and responsive breakpoints.
 - Attach a PDF export of the Figma file for non-design stakeholders.
 
-Notes: I cannot create Figma files from code. Please upload the Figma files to a shared link and attach them to the project handover.
+> Note: The repository contains the Figma handover checklist and PDF export, but not the actual `.fig` source files. Please upload the Figma source files to a shared link for the final handover.

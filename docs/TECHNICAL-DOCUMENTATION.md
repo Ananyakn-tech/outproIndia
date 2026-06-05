@@ -13,6 +13,13 @@ This repository contains a Next.js 13 (App Router) site. Key points:
   - `HUBSPOT_API_KEY` — optional HubSpot CRM forwarding for new contacts
   - `ZOHO_ACCESS_TOKEN` — optional Zoho CRM forwarding for new contacts
 
+## Vercel deployment setup
+
+- Add the required environment variables in Vercel project settings.
+- Make sure deployment protection is disabled so the public site is accessible.
+- Redeploy the project after saving env vars.
+- Use the production URL to verify the live site.
+
 Files added by handover scripts:
 - `src/app/services/[slug]/page.tsx` — dynamic service pages
 - `src/marketing/contact-form-section.tsx` — client form that posts to `/api/contact`

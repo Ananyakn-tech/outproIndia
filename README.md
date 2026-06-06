@@ -37,4 +37,4 @@ npm run build
 
 ## Docs
 
-See the `docs/` folder for handover documentation and generated PDFs.
+See the `docs/` folder for handover documentation and generated pdfs
